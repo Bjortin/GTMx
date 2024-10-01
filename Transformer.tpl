@@ -3,7 +3,7 @@ ___INFO___
 {
   "type": "MACRO",
   "id": "cvt_temp_public_id",
-  "version": 2,
+  "version": 1,
   "securityGroups": [],
   "displayName": "RegEx Transformer",
   "description": "A utility to use regex operations to transform any value in a variable over multiple steps. Perfect for PII removal based on RegEx conditions.",
