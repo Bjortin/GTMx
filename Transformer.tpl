@@ -1,11 +1,11 @@
-﻿___INFO___
+___INFO___
 
 {
   "type": "MACRO",
   "id": "cvt_temp_public_id",
-  "version": 1,
+  "version": 2,
   "securityGroups": [],
-  "displayName": "Transformer",
+  "displayName": "RegEx Transformer",
   "description": "A utility to use regex operations to transform any value in a variable over multiple steps. Perfect for PII removal based on RegEx conditions.",
   "containerContexts": [
     "SERVER"
@@ -16,6 +16,15 @@
 ___TEMPLATE_PARAMETERS___
 
 [
+  {
+    "type": "CHECKBOX",
+    "name": "static_mode",
+    "checkboxText": "Use a constant value for testing",
+    "simpleValueType": true,
+    "alwaysInSummary": true,
+    "help": "When ticked, you\u0027re able to enter a static string value to use for testing purpose. It\u0027s helpful during configuration and validating of the complex regex patterns.",
+    "displayName": "Enable variable debug mode"
+  },
   {
     "type": "SELECT",
     "name": "input",
@@ -29,7 +38,28 @@ ___TEMPLATE_PARAMETERS___
     ],
     "simpleValueType": true,
     "defaultValue": "input_default",
-    "alwaysInSummary": false
+    "alwaysInSummary": false,
+    "enablingConditions": [
+      {
+        "paramName": "static_mode",
+        "paramValue": false,
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "input_static",
+    "displayName": "Enter a static value",
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "static_mode",
+        "paramValue": true,
+        "type": "EQUALS"
+      }
+    ],
+    "defaultValue": "loream ipsum dolor..."
   },
   {
     "type": "SIMPLE_TABLE",
@@ -75,6 +105,12 @@ ___TEMPLATE_PARAMETERS___
         "displayName": "Operation output",
         "name": "op_out",
         "type": "TEXT"
+      },
+      {
+        "defaultValue": "",
+        "displayName": "Comment",
+        "name": "row_comment",
+        "type": "TEXT"
       }
     ]
   }
@@ -83,43 +119,62 @@ ___TEMPLATE_PARAMETERS___
 
 ___SANDBOXED_JS_FOR_SERVER___
 
-const logToConsole = require('logToConsole');
+const log = require('logToConsole');
 const createRegex = require('createRegex');
 const decodeUri = require('decodeUri');
 const getEventData = require('getEventData');
 const parseUrl = require('parseUrl');
+const template_name = 'RegEx Transformer';
 
 const transformer = {};
 
-let url_parts = parseUrl(data.input === 'input_default' ? getEventData('page_location') : data.input);
+let input;
+let input_string;
+let url_parts;
 
-logToConsole('### TEST ###');
-logToConsole(decodeUri('https://se.fazer.com/search?q=test2%40fazer.com&options%5Bprefix%5D=last&sort_by=relevance'));
-
-
-//logToConsole('############');
-//logToConsole(url_parts.href);
-//logToConsole('############');
-//logToConsole(decodeUri(url_parts.href));
-//logToConsole('############');
-
-if(url_parts === undefined ||!url_parts.hasOwnProperty('href'))
+if(data.static_mode)
 {
-  return data.input;
+  input_string = data.input_static.length ? data.input_static.toString() : "";
+}
+else if(!data.static_mode)
+{
+  
+    if(data.input === 'input_default')
+    {
+      input = parseUrl(getEventData('page_location'));
+      
+      if(input && input.hasOwnProperty('href'))
+      {
+        input_string = decodeUri(input.href);
+      }
+      else
+      {
+        return input;
+      }
+    }
+    else
+    {
+      if(data.input === undefined || data.input === null)
+      {
+        return input;
+      }
+      else
+      {
+        input_string = data.input.toString();
+      }
+    }
 }
 
-let raw_href = decodeUri(url_parts.href);
 
 let pattern_encode_at_sign = createRegex('%40', 'gi');
-transformer.org_input = raw_href.replace(pattern_encode_at_sign, '@');
+transformer.org_input = input_string.replace(pattern_encode_at_sign, '@');
+transformer.operating_input = transformer.org_input;
 transformer.operating_output = transformer.org_input;
 transformer.op_table = data.operations;
 
 
-logToConsole("### BASE DATA ####");
-logToConsole("transformer.op_table:", transformer.op_table);
-logToConsole("transformer.org_input:", transformer.org_input);
-logToConsole("transformer.operating_output:", transformer.operating_output);
+log("### " + template_name + " ####");
+log("Original input value: ", transformer.org_input);
 
 
 if(transformer.op_table && !transformer.op_table.length)
@@ -172,12 +227,21 @@ transformer.base = () =>
                 break;
         }
 
-        logToConsole("ROW " + i, transformer.operating_output);
+        log("ROW " + i + " input value:", transformer.operating_input);
+        log("ROW " + i + " output value:", transformer.operating_output);
+      
+        transformer.operating_input = transformer.operating_output;
+
     }
 
+    log("Final output value: ", transformer.operating_output);
     return transformer.operating_output;
 
 };
+
+
+
+
 
 transformer.op_equals_to = (check, flags) =>
 {
@@ -190,21 +254,23 @@ transformer.op_equals_to = (check, flags) =>
     {
         transformer.operating_output = (transformer.operating_output !== check.op_criteria) ? check.op_out : transformer.operating_output;
     }
-    logToConsole("transformer.op_equals_to(), new value:", transformer.operating_output);
+    //logToConsole("transformer.op_equals_to(), new value:", transformer.operating_output);
 };
 
 transformer.op_regex_replace = (check, flags) =>
 {
     let pattern = createRegex(check.op_criteria, flags);
+    //log("criteria:", check.op_criteria);
+    //log("replacement:", check.op_out);
     transformer.operating_output = transformer.operating_output.replace(pattern, check.op_out);
-    logToConsole("transformer.op_regex_replace(), new value:", transformer.operating_output);
+    //log("transformer.op_regex_replace(), new value:", transformer.operating_output);
 
 };
 
 transformer.op_default = () =>
 {
     transformer.operating_output = transformer.operating_output;
-    logToConsole("transformer.op_default(), new value:", transformer.operating_output);
+    //logToConsole("transformer.op_default(), new value:", transformer.operating_output);
 };
 
 return transformer.base();
@@ -276,9 +342,10 @@ scenarios:
 - name: Remove potential email address from any parameter
   code: |-
     const mockData = {
-      input: 'https://se.fazer.com/search?q=test2%40fazer.com&options%5Bprefix%5D=last&sort_by=relevance',
+      input: 'https://www.nelsongarden.pl/?demo=aaa@bbb.com&ccc=22222&tel=031000000',
       operations: [
-        {'op_type': 'regex_replace_gci', 'op_criteria': '(=)(([^@&#]+|)@[^&#]+)', 'op_out': '$1[EMAIL REDACTED]'}
+        {'op_type': 'regex_replace_gci', 'op_criteria': '(=)(([^@&#]+|)@[^&#]+)', 'op_out': '$1[EMAIL REDACTED]'},
+        {'op_type': 'regex_replace_gci', 'op_criteria': '(?:(tel|phone|call|callto|im|sip|sips|conf)(:|=))([0-9]+)', 'op_out': '$1$2[DDD]'}
       ]
     };
 
