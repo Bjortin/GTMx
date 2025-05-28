@@ -23,7 +23,7 @@ ___TEMPLATE_PARAMETERS___
     "macrosInSelect": true,
     "selectItems": [],
     "simpleValueType": true,
-    "defaultValue": "clip-in ponytail gjord av \\u00e4kta h\\u00e5r \\u00bb 7.3 cendre ash 40 cm"
+    "defaultValue": ""
   }
 ]
 
@@ -105,6 +105,6 @@ scenarios: []
 
 ___NOTES___
 
-Created on 27/07/2023, 15:21:05
+Created on 27/05/2025, 15:21:05
 
 
