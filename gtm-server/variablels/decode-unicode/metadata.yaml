@@ -1,0 +1,8 @@
+displayName: "Decode Unicode"
+description: "A template that decodes unicode characters."
+template_url: "https://raw.githubusercontent.com/Bjortin/GTMx/refs/heads/master/gtm-server/variablels/decode-unicode/template.tpl"
+homepage_url: "https://github.com/Bjortin/GTMx/tree/master/gtm-server/variablels/decode-unicode"
+authors:
+  - name: Johan Björtin
+    email: johan@example.com
+license: Apache-2.0
