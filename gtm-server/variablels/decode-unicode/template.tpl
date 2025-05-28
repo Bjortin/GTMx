@@ -31,17 +31,17 @@ ___TEMPLATE_PARAMETERS___
 ___SANDBOXED_JS_FOR_SERVER___
 
 const logToConsole = require('logToConsole');
-const createRegex = require('createRegex');
+const createRegex  = require('createRegex');
 const getEventData = require('getEventData');
-const JSON = require('JSON');
+const JSON         = require('JSON');
 
-let input = data.input;
+let input          = data.input;
+let pattern_encode = createRegex('\\\\u([\\dA-F]{4})', 'gi');
 let output;
 
-let pattern_encode = createRegex('\\\\u([\\dA-F]{4})', 'gi');
 
-output = input.replace(pattern_encode, function (match) {
-  
+output = input.replace(pattern_encode, function (match) 
+{  
   return JSON.parse('["' + match + '"]')[0];
 });
 
@@ -106,4 +106,5 @@ scenarios: []
 ___NOTES___
 
 Created on 27/07/2023, 15:21:05
+
 
