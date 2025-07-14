@@ -1,11 +1,3 @@
-___TERMS_OF_SERVICE___
-
-By creating or modifying this file you agree to Google Tag Manager's Community
-Template Gallery Developer Terms of Service available at
-https://developers.google.com/tag-manager/gallery-tos (or such other URL as
-Google may provide), as modified from time to time.
-
-
 ___INFO___
 
 {
@@ -146,50 +138,63 @@ const set_cookie               = require("setCookie");
 const cookies_to_delete        = data.cookie_list || [];
 const cookies_from_client_side = data.cookie_string || "";
 let client_side_cookie_keys    = [];
+let message = "";
 
 // Utility function to delete a cookie
-const delete_cookie = (cookie_name, domain, path) => 
+const delete_cookie = (cookie_name, domain, path, message) => 
 {
-  const normalized_domain = domain && !domain.startsWith('.') ? "." + domain : domain || 'auto';
+  
+  const normalized_domain = domain.indexOf('.') === 0 ? domain : "." + domain || 'auto';
+  
+  log("normalized_domain: " + normalized_domain);
   
   set_cookie(cookie_name, 'deleted', {
     domain: normalized_domain || 'auto',
     expires: 'Thu, 01 Jan 1970 00:00:00 GMT',
     path: path || '/'
   });
-  log(cookie_name + " deleted");
+  log(message);
 };
 
 // Parse client-side cookie keys if enabled
 const parse_enabled = data.parse_client_side_cookie_string;
+
+log('cookies_from_client_side: ' + cookies_from_client_side);
+
 if (parse_enabled && cookies_from_client_side.length > 0) 
 {
-  log('Client-side parsing is enabled');
   client_side_cookie_keys = cookies_from_client_side.split(";").map(cookie => cookie.split("=")[0].trim());
 }
 
 // Delete cookies
 cookies_to_delete.forEach(cookie => 
-{
+{ 
   const is_wildcard = parse_enabled && cookie.cookie_name.indexOf('*') > -1;
-
+  
+  log("is_wildecard: " + is_wildcard);
+  
   if (is_wildcard) 
   {
-    const pattern = createRegex('^' + cookie.cookie_name.replace('*', '.*'));
+    
+    const pattern = createRegex('^' + cookie.cookie_name.replace('*', '.*') + '$', '');
     
     client_side_cookie_keys.forEach(key => 
     {
-      if (testRegex(pattern, key)) 
+      let is_match = testRegex(pattern, key);
+      
+      log("Pattern: " + pattern + " KEY: " + key + " MTATCH: " + is_match);
+      
+      if (is_match) 
       {
-        log("Pattern matched for: " + key);
-        delete_cookie(key, cookie.domain, cookie.path);
+        message = "Cooike Name: '" + key + "' did match the pattern: " + pattern + " and was deleted";
+        delete_cookie(key, cookie.domain, cookie.path, message);
       }
     });
   } 
   else 
   {
-    log(cookie);
-    delete_cookie(cookie.cookie_name, cookie.domain, cookie.path);
+    message = "Cooike Name: '" + cookie.cookie_name + "' was deleted";
+    delete_cookie(cookie.cookie_name, cookie.domain, cookie.path, message);
   }
 });
 
@@ -298,8 +303,9 @@ scenarios:
 - name: Process Client Side Cookies
   code: |-
     const mockData = {
+      parse_client_side_cookie_string: true,
       cookie_string: 'FPLC=some-fpgsid-value; ai_session=some-ai-session-id; _ga=som-ga-value: _ga_abcde=some-other-value',
-      cookie_list: [{"cookie_name":"_ga*","domain":".example.com","path":"/"},{"cookie_name":"FPID","domain":".ihm.se","path":"/"}]
+      cookie_list: [{"cookie_name":"_ga*","domain":".example.com","path":"/"},{"cookie_name":"FPID","domain":"ihm.se","path":"/"}]
     };
 
     runCode(mockData);
@@ -309,6 +315,6 @@ scenarios:
 
 ___NOTES___
 
-Created on 28/05/2025, 16:24:18
+Created on 10/07/2025, 11:05:54
 
 
